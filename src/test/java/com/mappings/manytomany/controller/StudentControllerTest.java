@@ -69,7 +69,6 @@ class StudentControllerTest {
         student2.setCourseId(coursesDtoList2);
         List<StudentDto> studentDtoList = Arrays.asList(student1, student2);
         when(studentService.getAllStudents()).thenReturn(studentDtoList);
-
         mockMvc.perform(get("/api/students")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -141,11 +140,25 @@ class StudentControllerTest {
     }
 
     @Test
-    void deleteStudent() {
+    void deleteStudent() throws Exception {
+        List<Long> courseDto = Arrays.asList(100l,101l);
+        StudentDto studentDto = new StudentDto(1l, "Manik", courseDto);
+
+        mockMvc.perform(delete("/api/students/1"))
+                .andExpect(status().isNoContent());
+        Mockito.verify(studentService).deleteStudent(studentDto.getId().longValue());
     }
 
     @Test
     void getAllCourses() {
+        List<Long> studentDto = new StudentDto(101l, "Manik",Arrays.asList(101L,102L)).getCourseId();
+        List<CoursesDto> coursesDtoList = Arrays.asList(
+                new CoursesDto(101l, "Mathematics",studentDto),
+                new CoursesDto(102l, "Science",studentDto)
+
+        );
+
+        mockMvc.perform(get(api))
     }
 
     @Test
