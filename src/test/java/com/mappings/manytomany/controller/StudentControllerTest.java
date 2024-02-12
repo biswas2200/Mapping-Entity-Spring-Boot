@@ -2,25 +2,27 @@ package com.mappings.manytomany.controller;
 
 //integration testing.
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mappings.manytomany.dto.CoursesDto;
 import com.mappings.manytomany.dto.StudentDto;
 import com.mappings.manytomany.service.StudentService;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.junit.Before;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -28,7 +30,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 
 @RunWith(SpringRunner.class)
@@ -37,6 +38,9 @@ class StudentControllerTest {
 
     @Autowired
     WebApplicationContext webApplicationContext;
+
+    @Autowired
+    ObjectMapper objectMapper;
 
     @InjectMocks
     private StudentController studentController;
@@ -80,6 +84,7 @@ class StudentControllerTest {
                 .andExpect(jsonPath("$[1].courseId[1]").value(coursesDtoList2.get(1).longValue()));
 
 
+
     }
 
     @Test
@@ -98,11 +103,41 @@ class StudentControllerTest {
     }
 
     @Test
-    void createStudent() {
+    void createStudent() throws Exception {
+        List<Long>courseDTO = Arrays.asList(101L, 102L);
+        StudentDto Student1 = new StudentDto(1L, "ManikCreated", courseDTO);
+
+        when(studentService.createStudent(Mockito.any())).thenReturn(Student1);
+
+        mockMvc.perform(post("/api/students")
+                .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Student1)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(Student1.getId().longValue()))
+                .andExpect(jsonPath("$.studentName").value(Student1.getStudentName()))
+                .andExpect(jsonPath("$.courseId").isArray())
+                .andExpect(jsonPath("$.courseId[0]").value(Student1.getCourseId().get(0)))
+                .andExpect(jsonPath("$.courseId[1]").value(Student1.getCourseId().get(1)));
+
     }
 
     @Test
-    void updateStudent() {
+    void updateStudent() throws Exception {
+        List<Long> courseDto = Arrays.asList(101l, 102l);
+        StudentDto studentDto = new StudentDto(1l, "ManikCreated", courseDto);
+        StudentDto updateStudent = new StudentDto(1l, "ManikUpdated",courseDto);
+
+        when(studentService.updateStudent(Mockito.eq(1l),Mockito.any())).thenReturn(updateStudent);
+
+        mockMvc.perform(put("/api/students/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(studentDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(studentDto.getId().longValue()))
+                .andExpect(jsonPath("$.studentName").value(updateStudent.getStudentName()))
+                .andExpect(jsonPath("$.courseId").isArray())
+                .andExpect(jsonPath("$.courseId[0]").value(updateStudent.getCourseId().get(0)))
+                .andExpect(jsonPath("$.courseId[1]").value(updateStudent.getCourseId().get(1)));
     }
 
     @Test
