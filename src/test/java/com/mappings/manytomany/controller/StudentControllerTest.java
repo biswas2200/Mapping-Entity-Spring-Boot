@@ -7,6 +7,8 @@ import com.mappings.manytomany.dto.CoursesDto;
 import com.mappings.manytomany.dto.StudentDto;
 import com.mappings.manytomany.service.StudentService;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -150,31 +152,77 @@ class StudentControllerTest {
     }
 
     @Test
-    void getAllCourses() {
-        List<Long> studentDto = new StudentDto(101l, "Manik",Arrays.asList(101L,102L)).getCourseId();
+    void getAllCourses() throws Exception {
         List<CoursesDto> coursesDtoList = Arrays.asList(
-                new CoursesDto(101l, "Mathematics",studentDto),
-                new CoursesDto(102l, "Science",studentDto)
+                new CoursesDto(101l, "Mathematics",Arrays.asList(1l,2l)),
+                new CoursesDto(102l, "Science",Arrays.asList(3l,4l))
 
         );
-
-        mockMvc.perform(get(api))
+        when(studentService.getAllCourses()).thenReturn(coursesDtoList);
+        mockMvc.perform(get("/api/courses")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$",hasSize(2)))
+                .andExpect(jsonPath("$[0].id").value(101))
+                .andExpect(jsonPath("$[0].title").value("Mathematics"))
+                .andExpect(jsonPath("$[0].studentId",containsInAnyOrder(1,2)))
+                .andExpect(jsonPath("$[1].id").value(102))
+                .andExpect(jsonPath("$[1].title").value("Science"))
+                .andExpect(jsonPath("$[1].studentId",containsInAnyOrder(3,4)));
     }
 
     @Test
-    void getCourseById() {
+    void getCourseById() throws Exception {
+        CoursesDto coursesDto = new CoursesDto(101l, "Science", Arrays.asList(1l, 2l));
+        when(studentService.getCourseById(101l)).thenReturn(coursesDto);
+        mockMvc.perform(get("/api/courses/101")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(coursesDto.getId().longValue()))
+                .andExpect(jsonPath("$.title").value(coursesDto.getTitle()))
+                .andExpect(jsonPath("$.studentId[0]").value(1))
+                .andExpect(jsonPath("$.studentId[1]").value(2));
     }
 
     @Test
-    void createCourse() {
+    void createCourse() throws Exception {
+        CoursesDto coursesDto = new CoursesDto(10l,"SubjectCreated", Arrays.asList(10l, 20l));
+        when(studentService.createCourses(Mockito.any())).thenReturn(coursesDto);
+        mockMvc.perform(post("/api/courses")
+                .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(coursesDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(coursesDto.getId().longValue()))
+                .andExpect(jsonPath("$.title").value("SubjectCreated"))
+                .andExpect(jsonPath("$.studentId").isArray())
+                .andExpect(jsonPath("$.studentId[0]").value(10))
+                .andExpect(jsonPath("$.studentId[1]").value(20));
     }
 
     @Test
-    void updateCourse() {
+    void updateCourse() throws Exception {
+        CoursesDto coursesDto = new CoursesDto(10l, "SubjectCreated", Arrays.asList(10l, 20l));
+        CoursesDto updatedCourse = new CoursesDto(10l, "SubjectUpdated", Arrays.asList(10l, 20l));
+
+        when(studentService.updateCourses(Mockito.eq(10l),Mockito.any())).thenReturn(updatedCourse);
+        mockMvc.perform(put("/api/courses/10")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(coursesDto)))
+                .andExpect(jsonPath("$.id").value(coursesDto.getId()))
+                .andExpect(jsonPath("$.title").value(updatedCourse.getTitle()))
+                .andExpect(jsonPath("$.studentId").isArray())
+                .andExpect(jsonPath("$.studentId[0]").value(10))
+                .andExpect(jsonPath("$.studentId[1]").value(20));
+
     }
 
     @Test
-    void deleteCourse() {
+    void deleteCourse() throws Exception {
+        CoursesDto coursesDto = new CoursesDto(10l, "Science", Arrays.asList(10l, 20l));
+        mockMvc.perform(delete("/api/students/10"))
+                .andExpect(status().isNoContent());
+        Mockito.verify(studentService).deleteCourses(coursesDto.getId());
+
     }
 
     @Test
