@@ -225,7 +225,18 @@ class StudentControllerTest {
 
     }
 
-    @Test
-    void enrollStudentInCourse() {
+   @Test
+    void enrollStudentInCourse() throws Exception {
+        Long studentId = 1L;
+        Long courseId = 2L;
+
+        when(studentService.getStudentById(studentId)).thenReturn(new StudentDto());
+        when(studentService.getCourseById(courseId)).thenReturn(new CoursesDto());
+
+        mockMvc.perform(post("/api/students/1/courses/2", studentId, courseId))
+                .andExpect(status().isCreated());
+
+        verify(studentService).enrollStudentInCourse(studentId, courseId);
+
     }
 }
